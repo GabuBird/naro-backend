@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -111,4 +112,81 @@ func (h *Handler) SignUpHandler(c echo.Context) error {
 	}
 	// 登録に成功したら201 Createdを返す//
 	return c.NoContent(http.StatusCreated)
+}
+
+type User struct {
+	Username   string `json:"username,omitempty"  db:"Username"`
+	HashedPass string `json:"-"  db:"HashedPass"`
+}
+
+func (h *Handler) LoginHandler(c echo.Context) error {
+	// リクエストを受け取り、reqに格納する
+	var req LoginRequestBody
+	err := c.Bind(&req)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "bad request body")
+	}
+
+	// バリデーションする(PasswordかUsernameが空文字列の場合は400 BadRequestを返す)
+	if req.Password == "" || req.Username == "" {
+		return c.String(http.StatusBadRequest, "Username or Password is empty")
+	}
+
+	// データベースからユーザーを取得する
+	user := User{}
+	err = h.db.Get(&user, "SELECT * FROM users WHERE username=?", req.Username)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.NoContent(http.StatusUnauthorized)
+		} else {
+			log.Println(err)
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
+	// パスワードが一致しているかを確かめる
+	err = bcrypt.CompareHashAndPassword([]byte(user.HashedPass), []byte(req.Password))
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return c.NoContent(http.StatusUnauthorized)
+		} else {
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
+	// セッションストアに登録する
+	sess, err := session.Get("sessions", c)
+	if err != nil {
+		log.Println(err)
+		return c.String(http.StatusInternalServerError, "something wrong in getting session")
+	}
+	sess.Values["userName"] = req.Username
+	sess.Save(c.Request(), c.Response())
+
+	return c.NoContent(http.StatusOK)
+}
+
+func UserAuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		sess, err := session.Get("sessions", c)
+		if err != nil {
+			log.Println(err)
+			return c.String(http.StatusInternalServerError, "something wrong in getting session")
+		}
+		if sess.Values["userName"] == nil {
+			return c.String(http.StatusUnauthorized, "please login")
+		}
+		c.Set("userName", sess.Values["userName"].(string))
+		return next(c)
+	}
+}
+
+type Me struct {
+	Username string `json:"username,omitempty"  db:"username"`
+}
+
+func GetMeHandler(c echo.Context) error {
+	return c.JSON(http.StatusOK, Me{
+		Username: c.Get("userName").(string),
+	})
 }
