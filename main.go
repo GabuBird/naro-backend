@@ -76,6 +76,7 @@ func main() {
 	withAuth.Use(handler.UserAuthMiddleware)
 	withAuth.GET("/me", handler.GetMeHandler)
 	withAuth.POST("/cities", h.PostCityHandler)
+	withAuth.POST("/logout", h.LogoutHandler)
 
 	err = e.Start(":8080")
 	if err != nil {

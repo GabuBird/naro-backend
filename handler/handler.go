@@ -229,3 +229,18 @@ func GetMeHandler(c echo.Context) error {
 		Username: c.Get("userName").(string),
 	})
 }
+
+func (h *Handler) LogoutHandler(c echo.Context) error {
+	sess, err := session.Get("sessions", c)
+	if err != nil {
+		log.Println(err)
+		return c.String(http.StatusInternalServerError, "something wrong in getting session")
+	}
+	// セッションの有効期限を過去に設定することで、ブラウザのクッキーを削除させます
+	sess.Options.MaxAge = -1
+	// セッションに保存した値もクリアします
+	sess.Values["userName"] = nil
+	sess.Save(c.Request(), c.Response())
+
+	return c.NoContent(http.StatusOK)
+}
