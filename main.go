@@ -73,6 +73,9 @@ func main() {
 	withAuth.GET("/cities/:cityName", h.GetCityInfoHandler)
 	withAuth.POST("/cities", h.PostCityHandler)
 
+	withAuth.GET("/countries", h.GetCountriesHandler)
+	withAuth.GET("/countries/:countryCode/cities", h.GetCitiesByCountryHandler)
+
 	err = e.Start(":8080")
 	if err != nil {
 		log.Fatal(err)

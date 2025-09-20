@@ -28,6 +28,24 @@ type City struct {
 	Population  sql.NullInt64  `json:"population,omitempty"  db:"Population"`
 }
 
+type Country struct {
+	Code           string          `json:"code" db:"Code"`
+	Name           string          `json:"name" db:"Name"`
+	Continent      string          `json:"continent" db:"Continent"`
+	Region         string          `json:"region" db:"Region"`
+	SurfaceArea    float64         `json:"surfaceArea" db:"SurfaceArea"`
+	IndepYear      sql.NullInt16   `json:"indepYear" db:"IndepYear"`
+	Population     int             `json:"population" db:"Population"`
+	LifeExpectancy sql.NullFloat64 `json:"lifeExpectancy" db:"LifeExpectancy"`
+	GNP            sql.NullFloat64 `json:"gnp" db:"GNP"`
+	GNPOld         sql.NullFloat64 `json:"gnpOld" db:"GNPOld"`
+	LocalName      string          `json:"localName" db:"LocalName"`
+	GovernmentForm string          `json:"governmentForm" db:"GovernmentForm"`
+	HeadOfState    sql.NullString  `json:"headOfState" db:"HeadOfState"`
+	Capital        sql.NullInt32   `json:"capital" db:"Capital"`
+	Code2          string          `json:"code2" db:"Code2"`
+}
+
 func (h *Handler) GetCityInfoHandler(c echo.Context) error {
 	cityName := c.Param("cityName")
 
@@ -42,6 +60,27 @@ func (h *Handler) GetCityInfoHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, city)
+}
+
+func (h *Handler) GetCountriesHandler(c echo.Context) error {
+	var countries []Country
+	err := h.db.Select(&countries, "SELECT * FROM country")
+	if err != nil {
+		log.Printf("failed to get country data: %s\n", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	return c.JSON(http.StatusOK, countries)
+}
+
+func (h *Handler) GetCitiesByCountryHandler(c echo.Context) error {
+	countryCode := c.Param("countryCode")
+	var cities []City
+	err := h.db.Select(&cities, "SELECT * FROM city WHERE CountryCode=?", countryCode)
+	if err != nil {
+		log.Printf("failed to get city data: %s\n", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	return c.JSON(http.StatusOK, cities)
 }
 
 func (h *Handler) PostCityHandler(c echo.Context) error {
