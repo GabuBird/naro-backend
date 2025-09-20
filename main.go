@@ -63,16 +63,16 @@ func main() {
 	e.Use(middleware.Logger())       // ログを取るミドルウェアを追加
 	e.Use(session.Middleware(store)) // セッション管理のためのミドルウェアを追加
 
-	api := e.Group("/api")
+	//api := e.Group("/api")
 
-	api.POST("/signup", h.SignUpHandler)
-	api.POST("/login", h.LoginHandler)
-	api.GET("/ping", func(c echo.Context) error { return c.String(http.StatusOK, "pong") })
-	api.GET("/countries", h.GetCountriesHandler)
-	api.GET("/countries/:countryCode/cities", h.GetCitiesByCountryHandler)
-	api.GET("/cities/:cityName", h.GetCityInfoHandler)
+	e.POST("/signup", h.SignUpHandler)
+	e.POST("/login", h.LoginHandler)
+	e.GET("/ping", func(c echo.Context) error { return c.String(http.StatusOK, "pong") })
+	e.GET("/countries", h.GetCountriesHandler)
+	e.GET("/countries/:countryCode/cities", h.GetCitiesByCountryHandler)
+	e.GET("/cities/:cityName", h.GetCityInfoHandler)
 
-	withAuth := api.Group("")
+	withAuth := e.Group("")
 	withAuth.Use(handler.UserAuthMiddleware)
 	withAuth.GET("/me", handler.GetMeHandler)
 	withAuth.POST("/cities", h.PostCityHandler)
