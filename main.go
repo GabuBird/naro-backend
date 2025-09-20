@@ -63,18 +63,19 @@ func main() {
 	e.Use(middleware.Logger())       // ログを取るミドルウェアを追加
 	e.Use(session.Middleware(store)) // セッション管理のためのミドルウェアを追加
 
-	e.POST("/signup", h.SignUpHandler)
-	e.POST("/login", h.LoginHandler)
-	e.GET("/ping", func(c echo.Context) error { return c.String(http.StatusOK, "pong") })
+	api := e.Group("/api")
 
-	withAuth := e.Group("")
+	api.POST("/signup", h.SignUpHandler)
+	api.POST("/login", h.LoginHandler)
+	api.GET("/ping", func(c echo.Context) error { return c.String(http.StatusOK, "pong") })
+	api.GET("/countries", h.GetCountriesHandler)
+	api.GET("/countries/:countryCode/cities", h.GetCitiesByCountryHandler)
+	api.GET("/cities/:cityName", h.GetCityInfoHandler)
+
+	withAuth := api.Group("")
 	withAuth.Use(handler.UserAuthMiddleware)
 	withAuth.GET("/me", handler.GetMeHandler)
-	withAuth.GET("/cities/:cityName", h.GetCityInfoHandler)
 	withAuth.POST("/cities", h.PostCityHandler)
-
-	withAuth.GET("/countries", h.GetCountriesHandler)
-	withAuth.GET("/countries/:countryCode/cities", h.GetCitiesByCountryHandler)
 
 	err = e.Start(":8080")
 	if err != nil {
